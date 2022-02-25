@@ -1,4 +1,6 @@
 from nltk.stem import PorterStemmer
+from nltk.tokenize import word_tokenize
+from nltk.corpus import stopwords
 
 
 def main(text_file_path: str) -> None:
@@ -7,26 +9,34 @@ def main(text_file_path: str) -> None:
     with open(text_file_path, 'r') as f:
         SAMPLE_TEXT = f.read()
 
-    ALLOWED_CHARACTERS = 'abcdefghijklmnopqrstuvwxyz '
+    ALLOWED_CHARACTERS = "abcdefghijklmnopqrstuvwxyz -"
 
-    cleaned_text = clean_text(text=SAMPLE_TEXT, alphabet=ALLOWED_CHARACTERS)
-
-    words = tokenize_text(text=cleaned_text)
-
-    for word in words:
-        vectors = onehot_w2v(word=word, alphabet=ALLOWED_CHARACTERS)
-        pretty_print(word=word, vectors=vectors)
-
-
-def clean_text(text: str, alphabet: str) -> str:
-
-    # Convert the whole text to one paragraph
-    text = text.replace('\n', ' ')
+    cleaned_text = text_to_single_paragraph(text=SAMPLE_TEXT)
 
     # Convert the whole text characters to lower-case form
-    text = text.lower()
+    cleaned_text = cleaned_text.lower()
 
-    # Remove unallowed characters from the text
+    cleaned_text = remove_unallowed_characters(text=cleaned_text, alphabet=ALLOWED_CHARACTERS)
+
+    word_tokens = tokenize_text(text=cleaned_text)
+    print(f'\nNumber of words BEFORE removing stop words and stemming: {len(word_tokens)}')
+
+    filtered_word_tokens = remove_stop_words(word_tokens=word_tokens)
+
+    stemmed_word_tokens = stem_word_tokens(word_tokens=filtered_word_tokens)
+    print(f'Number of words AFTER removing stop words and stemming: {len(stemmed_word_tokens)}\n')
+
+    for token in stemmed_word_tokens:
+        vectors = onehot_w2v(word=token, alphabet=ALLOWED_CHARACTERS)
+        pretty_print(word=token, vectors=vectors)
+
+
+def text_to_single_paragraph(text: str) -> str:
+    # Convert the whole text to one paragraph
+    return text.replace('\n', ' ')
+
+
+def remove_unallowed_characters(text: str, alphabet: str) -> str:
     temp = text
     for char in text:
         if char not in alphabet:
@@ -36,14 +46,27 @@ def clean_text(text: str, alphabet: str) -> str:
 
 def tokenize_text(text: str) -> set:
     """
-    Split the text into a set of words (Tokenization) 
-    and using Porter stemmer to stem all words
+    Split the text into a set of words (Tokenization)
+    """
+    words = set()
+    for word in [word for word in word_tokenize(text)]:
+        words.add(word)
+    return words
+
+
+def remove_stop_words(word_tokens: set) -> list:
+    return [token for token in word_tokens if token not in stopwords.words('english') and len(token) > 1]
+
+
+def stem_word_tokens(word_tokens: list) -> list:
+    """
+    Using Porter stemmer to stem all words
     """
     porter = PorterStemmer()
-    words = set()
-    for word in [word for word in text.split() if len(word) > 1]:
-        words.add(porter.stem(word))
-    return words
+    tokens = set()
+    for token in word_tokens:
+        tokens.add(porter.stem(token))
+    return list(tokens)
 
 
 def onehot_w2v(word: str, alphabet: str) -> list:
@@ -67,6 +90,3 @@ def pretty_print(word: str, vectors: list) -> None:
     for vector in vectors:
         print(f'    {vector},')
     print(']\n')
-
-
-main(text_file_path=r'F:\uni\7_4002\Foundations of Information Retrieval and Web Search\Homeworks\sample_text.txt')
