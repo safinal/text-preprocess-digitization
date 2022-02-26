@@ -48,10 +48,7 @@ def tokenize_text(text: str) -> set:
     """
     Split the text into a set of words (Tokenization)
     """
-    words = set()
-    for word in [word for word in word_tokenize(text)]:
-        words.add(word)
-    return words
+    return set(word_tokenize(text))
 
 
 def remove_stop_words(word_tokens: set) -> list:
